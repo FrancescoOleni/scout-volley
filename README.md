@@ -22,5 +22,6 @@ I dati restano solo sul telefono: usa **Squadra → Backup** per esportarli e re
 
 ## Pubblicare una nuova versione
 
-Dopo aver modificato i file, aumenta il numero in `CACHE` dentro `sw.js` (es. `scoutvolley-v2`),
-altrimenti i telefoni continuano a usare la versione salvata.
+Dopo aver modificato i file, aumenta il numero in `CACHE` dentro `sw.js` (es. `scoutvolley-v4`)
+e `APP_VERSION` in `app.js` (es. `v4`), altrimenti i telefoni continuano a usare la versione salvata.
+La versione installata si legge in fondo alla schermata Squadra.

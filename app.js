@@ -3,6 +3,7 @@
 
   /* ---------- Costanti ---------- */
 
+  const APP_VERSION = 'v3';
   const STORE_KEY = 'scoutvolley.db.v1';
   const BACKUP_KEY = 'scoutvolley.lastBackup';
   const SEL_TIMEOUT = 3000;
@@ -290,6 +291,7 @@
           <button class="btn btn-primary btn-sm" data-act="newPlayer">${I.plus}<span>Aggiungi</span></button>
         </div>
         ${players.length ? `<div class="list">${rows}</div>` : `<div class="empty"><span>Nessun giocatore. Tocca “Aggiungi” per inserire la rosa.</span></div>`}
+        <p class="legend" style="text-align:center;margin:8px 0 0">Scout Volley ${APP_VERSION}</p>
       </main>
       ${nav('squadra')}`;
   }
@@ -917,7 +919,20 @@
   });
 
   if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+    // Quando una nuova versione prende il controllo, ricarica una volta per usarla subito.
+    // I dati sono già salvati, quindi non si perde nulla.
+    const hadController = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController || reloaded) return;
+      reloaded = true;
+      location.reload();
+    });
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' })
+        .then(reg => reg.update())
+        .catch(() => {});
+    });
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 

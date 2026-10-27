@@ -1,5 +1,6 @@
-// Ad ogni rilascio di una nuova versione aumentare il numero di CACHE.
-const CACHE = 'scoutvolley-v2';
+// Ad ogni rilascio di una nuova versione aumentare il numero di CACHE
+// (e APP_VERSION in app.js).
+const CACHE = 'scoutvolley-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -12,7 +13,13 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
+  // cache: 'reload' scavalca la cache HTTP del browser (GitHub Pages la tiene 10 minuti),
+  // altrimenti la nuova versione potrebbe salvare i file vecchi.
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(c => c.addAll(ASSETS.map(url => new Request(url, { cache: 'reload' }))))
+      .then(() => self.skipWaiting())
+  );
 });
 
 self.addEventListener('activate', event => {
