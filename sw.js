@@ -1,5 +1,5 @@
 // Ad ogni rilascio di una nuova versione aumentare il numero di CACHE.
-const CACHE = 'scoutvolley-v1';
+const CACHE = 'scoutvolley-v2';
 const ASSETS = [
   './',
   './index.html',

@@ -22,7 +22,7 @@
   FUNDS.forEach(f => f.out.forEach(o => { KIND[f.key + o[0]] = o[1]; }));
 
   const METRIC = {
-    B: { label: 'Eff%', calc: v => v[0] - v[3], note: 'Eff% battuta = (# − =) / totale' },
+    B: { label: 'Eff%', calc: v => v[0] + v[1] - v[2] - v[3], note: 'Eff% battuta = ((# + +) − (- + =)) / totale' },
     R: { label: 'Pos%', calc: v => v[0], note: 'Pos% ricezione = #+ / totale' },
     A: { label: 'Eff%', calc: v => v[0] - v[2] - v[3], note: 'Eff% attacco = (# − / − =) / totale' },
     M: null
