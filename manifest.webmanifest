@@ -1,0 +1,17 @@
+{
+  "name": "Scout Volley",
+  "short_name": "Scout Volley",
+  "description": "Scout di base per la pallavolo: battuta, ricezione, attacco e muro.",
+  "lang": "it",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#14181F",
+  "theme_color": "#14181F",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

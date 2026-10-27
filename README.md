@@ -1,0 +1,26 @@
+# Scout Volley
+
+Web app (PWA) per lo scout di base della pallavolo: battuta, ricezione, attacco e muro della propria squadra.
+Funziona offline e si installa sul telefono Android dalla home.
+
+## Installazione sul telefono
+
+1. Apri il link dell'app con Chrome.
+2. Menu ⋮ → **Aggiungi a schermata Home** (o **Installa app**).
+3. Da quel momento si apre come un'app e funziona anche senza rete.
+
+I dati restano solo sul telefono: usa **Squadra → Backup** per esportarli e reimportarli.
+
+## Codici
+
+| Fondamentale | Esiti |
+|---|---|
+| Battuta | `#` `+` `-` `=` |
+| Ricezione | `#+` `-` `/=` |
+| Attacco | `#` `+-` `/` `=` |
+| Muro | `#` (solo muri vincenti) |
+
+## Pubblicare una nuova versione
+
+Dopo aver modificato i file, aumenta il numero in `CACHE` dentro `sw.js` (es. `scoutvolley-v2`),
+altrimenti i telefoni continuano a usare la versione salvata.
