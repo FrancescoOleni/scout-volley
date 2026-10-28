@@ -3,7 +3,7 @@
 
   /* ---------- Costanti ---------- */
 
-  const APP_VERSION = 'v3';
+  const APP_VERSION = 'v4';
   const STORE_KEY = 'scoutvolley.db.v1';
   const BACKUP_KEY = 'scoutvolley.lastBackup';
   const SEL_TIMEOUT = 3000;
@@ -228,10 +228,10 @@
       body += `<div class="empty"><strong>Nessun evento</strong><span>Crea una partita o un allenamento con il tasto “Nuovo evento”.</span></div>`;
     }
     if (upcoming.length) {
-      body += `<h2 class="section-title">Prossimi</h2>` + upcoming.map((e, i) => eventCard(e, i === 0)).join('');
+      body += `<h2 class="section-title">Prossimi</h2><div class="cards">${upcoming.map((e, i) => eventCard(e, i === 0)).join('')}</div>`;
     }
     if (past.length) {
-      body += `<h2 class="section-title">Passati</h2>` + past.map(e => eventCard(e, false)).join('');
+      body += `<h2 class="section-title">Passati</h2><div class="cards">${past.map(e => eventCard(e, false)).join('')}</div>`;
     }
     return `<header class="hdr">
         <div class="eyebrow">${esc(db.team.name || 'La tua squadra')}</div>
@@ -441,6 +441,7 @@
         </div>
       </header>
       <div class="live-body">
+        <div class="live-players">
         <div class="row-between">
           <span class="sec-label">${L.subMode ? 'Cambio' : 'In campo'}</span>
           <button class="btn btn-sm" data-act="toggleSub" aria-pressed="${L.subMode}">${I.swap}<span>${L.subMode ? 'Chiudi' : 'Cambio'}</span></button>
@@ -449,6 +450,7 @@
         <div class="row2">
           ${tile(ev.liberoId, 'L', 'lib')}
           <div class="hint ${hintCls}" role="status">${esc(hint)}</div>
+        </div>
         </div>
         ${L.subMode ? benchHtml : `<div class="outcomes">${outcomes}</div>`}
       </div>

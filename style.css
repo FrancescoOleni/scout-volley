@@ -24,6 +24,7 @@
   --k-bad-bg: #F6C9C2;  --k-bad-fg: #7A1E12;
   --k-err-bg: #C8352B;  --k-err-fg: #FFFFFF;
   --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --app-w: 560px;
   color-scheme: light;
 }
 
@@ -41,7 +42,7 @@ a { color: var(--accent); }
 a:hover { color: var(--accent-ink); }
 
 .app {
-  max-width: 560px;
+  max-width: var(--app-w);
   margin: 0 auto;
   height: 100vh;
   height: 100dvh;
@@ -119,7 +120,7 @@ a:hover { color: var(--accent-ink); }
 
 .fab {
   position: fixed; z-index: 5;
-  right: max(16px, calc(50vw - 280px + 16px));
+  right: max(16px, calc(50vw - var(--app-w) / 2 + 16px));
   bottom: calc(80px + env(safe-area-inset-bottom));
   height: 56px; padding: 0 20px; border-radius: 28px; border: none;
   background: var(--ink); color: #FFFFFF; font-size: 16px; font-weight: 700;
@@ -201,6 +202,8 @@ select.input { appearance: auto; }
 .live-count .l { font-size: 12px; color: var(--on-dark-muted); }
 
 .live-body { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 12px 0; gap: 8px; }
+.live-players { display: flex; flex-direction: column; gap: 8px; }
+.cards { display: flex; flex-direction: column; gap: 12px; }
 .sec-label { font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .court { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
 .tile {
@@ -296,6 +299,45 @@ select.input { appearance: auto; }
   opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 30; max-width: calc(100vw - 32px);
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Tablet e schermi larghi: l'app usa più spazio */
+@media (min-width: 900px) {
+  :root { --app-w: 1180px; }
+  .main { padding: 20px 24px 28px; }
+  .main.with-fab { padding-bottom: 104px; }
+  .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lineup-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .prow:nth-child(2) { border-top: none; }
+  .prow:nth-child(even) { border-left: 1px solid var(--line-2); }
+}
+
+/* Orizzontale: in rilevazione giocatori a sinistra, esiti a destra */
+@media (orientation: landscape) and (min-width: 640px) {
+  .live-body { flex-direction: row; gap: 16px; padding: 10px 16px 0; }
+  .live-players { width: 44%; flex: none; min-height: 0; overflow-y: auto; padding-bottom: 10px; }
+  .live-body .outcomes, .live-body .benchpanel { flex: 1; min-width: 0; padding-top: 0; }
+  .tile { height: clamp(48px, 11dvh, 96px); }
+  .tile .n { font-size: clamp(22px, 4dvh, 34px); }
+  .hint { min-height: clamp(48px, 11dvh, 96px); }
+  .frow { max-height: none; min-height: 40px; }
+  .ob { font-size: clamp(20px, 4.5dvh, 34px); }
+  .flabel { width: 100px; font-size: 15px; }
+}
+/* Telefono in orizzontale: poco spazio in altezza, intestazione più compatta */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hdr { padding-top: calc(4px + env(safe-area-inset-top)); padding-bottom: 6px; gap: 6px; }
+  .hdr-sub { display: none; }
+  .hdr .icon-btn { height: 36px; }
+  .live-sets button { height: 30px; }
+  .live-count .l { display: none; }
+  .live-body .sec-label { display: none; }
+  .live-body .btn-sm { min-height: 34px; }
+  .recentbar { padding-top: 4px; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  .recentbar .btn-sm { min-height: 36px; }
+  .frow { min-height: 36px; }
+  .outcomes { gap: 6px; }
+}
 
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
