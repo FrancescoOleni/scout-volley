@@ -29,7 +29,7 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--ink); }
+html, body { margin: 0; height: 100%; overflow: hidden; background: var(--ink); }
 body {
   font-family: var(--font);
   color: var(--ink);
@@ -41,11 +41,12 @@ button { cursor: pointer; touch-action: manipulation; }
 a { color: var(--accent); }
 a:hover { color: var(--accent-ink); }
 
+/* Fissata sull'area visibile: su alcuni Android 100vh/100dvh comprende le barre di sistema */
 .app {
+  position: fixed;
+  top: 0; bottom: 0; left: 0; right: 0;
   max-width: var(--app-w);
   margin: 0 auto;
-  height: 100vh;
-  height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--bg);

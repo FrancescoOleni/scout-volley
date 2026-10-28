@@ -3,7 +3,7 @@
 
   /* ---------- Costanti ---------- */
 
-  const APP_VERSION = 'v4';
+  const APP_VERSION = 'v5';
   const STORE_KEY = 'scoutvolley.db.v1';
   const BACKUP_KEY = 'scoutvolley.lastBackup';
   const SEL_TIMEOUT = 3000;
@@ -937,6 +937,14 @@
     });
   }
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+
+  // L'app installata può conservare il vecchio blocco in verticale del manifest
+  // (Chrome lo aggiorna con ritardo): sblocca la rotazione all'avvio.
+  try {
+    if (screen.orientation && screen.orientation.lock && matchMedia('(display-mode: standalone), (display-mode: fullscreen)').matches) {
+      screen.orientation.lock('any').catch(() => {});
+    }
+  } catch (e) { /* non supportato */ }
 
   render();
 })();

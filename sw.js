@@ -1,6 +1,6 @@
 // Ad ogni rilascio di una nuova versione aumentare il numero di CACHE
 // (e APP_VERSION in app.js).
-const CACHE = 'scoutvolley-v4';
+const CACHE = 'scoutvolley-v5';
 const ASSETS = [
   './',
   './index.html',
