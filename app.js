@@ -3,7 +3,7 @@
 
   /* ---------- Costanti ---------- */
 
-  const APP_VERSION = 'v5';
+  const APP_VERSION = 'v6';
   const STORE_KEY = 'scoutvolley.db.v1';
   const BACKUP_KEY = 'scoutvolley.lastBackup';
   const SEL_TIMEOUT = 3000;
@@ -46,22 +46,29 @@
     download: svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M7 10l5 5 5-5"/><path d="M12 15V3"/>', 18),
     upload: svg('<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>', 18),
     trash: svg('<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>', 18),
-    chev: svg('<path d="M9 18l6-6-6-6"/>', 18, 'stroke="#6B7280"')
+    chev: svg('<path d="M9 18l6-6-6-6"/>', 18, 'stroke="#6B7280"'),
+    down: svg('<path d="M6 9l6 6 6-6"/>', 16),
+    check: svg('<path d="M20 6L9 17l-5-5"/>', 20)
   };
 
   /* ---------- Dati ---------- */
 
-  function emptyDb() {
-    return { version: 1, team: { name: '' }, players: [], events: [], actions: [] };
-  }
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  // Versione 2: più squadre, ognuna con i suoi giocatori ed eventi.
+  // I dati della versione 1 (una sola squadra in db.team) finiscono nella prima squadra.
   function normalize(d) {
-    const e = emptyDb();
-    if (!d || typeof d !== 'object') return e;
+    if (!d || typeof d !== 'object') d = {};
+    const teams = Array.isArray(d.teams) ? d.teams.filter(t => t && t.id) : [];
+    if (!teams.length) teams.push({ id: uid(), name: (d.team && d.team.name) || '' });
+    const ids = new Set(teams.map(t => t.id));
+    const fix = x => { if (!ids.has(x.teamId)) x.teamId = teams[0].id; return x; };
     return {
-      version: 1,
-      team: Object.assign(e.team, d.team || {}),
-      players: Array.isArray(d.players) ? d.players : [],
-      events: Array.isArray(d.events) ? d.events : [],
+      version: 2,
+      teams,
+      curTeamId: ids.has(d.curTeamId) ? d.curTeamId : teams[0].id,
+      players: Array.isArray(d.players) ? d.players.map(fix) : [],
+      events: Array.isArray(d.events) ? d.events.map(fix) : [],
       actions: Array.isArray(d.actions) ? d.actions : []
     };
   }
@@ -70,22 +77,26 @@
       const raw = localStorage.getItem(STORE_KEY);
       if (raw) return normalize(JSON.parse(raw));
     } catch (e) { /* dati illeggibili: si riparte vuoti */ }
-    return emptyDb();
+    return normalize(null);
   }
   let db = load();
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
     catch (e) { toast('Errore nel salvataggio: memoria del telefono piena?'); }
   }
-  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  save();
 
+  const curTeam = () => db.teams.find(t => t.id === db.curTeamId) || db.teams[0];
+  const teamName = t => (t && t.name) || 'La tua squadra';
+  const teamPlayers = (tid = curTeam().id) => db.players.filter(p => p.teamId === tid);
+  const teamEvents = () => db.events.filter(e => e.teamId === curTeam().id);
   const playerById = id => db.players.find(p => p.id === id);
   const P = id => playerById(id) || { id, num: '?', last: 'Eliminato', first: '', role: '' };
   const eventById = id => db.events.find(e => e.id === id);
   const actionsOf = evId => db.actions.filter(a => a.eventId === evId);
   const isLibero = id => P(id).role === 'L';
   const byNum = (a, b) => (Number(a.num) || 0) - (Number(b.num) || 0);
-  const activePlayers = () => db.players.filter(p => p.active !== false).sort(byNum);
+  const activePlayers = tid => teamPlayers(tid).filter(p => p.active !== false).sort(byNum);
   const fullName = p => [p.last, p.first].filter(Boolean).join(' ');
 
   /* ---------- Utilità ---------- */
@@ -170,6 +181,11 @@
       ${item('#/stat', 'stat', I.chart, 'Statistiche')}
     </nav>`;
   }
+  // Nome della squadra in intestazione: toccandolo si cambia squadra o se ne crea una nuova
+  function teamPicker() {
+    return `<button class="eyebrow team-pick" data-act="openTeams" aria-label="Squadra: ${esc(teamName(curTeam()))}. Cambia squadra">
+      <span>${esc(teamName(curTeam()))}</span>${I.down}</button>`;
+  }
   function seg(act, options, current, label) {
     return `<div class="seg" role="group" aria-label="${esc(label)}">${options.map(([v, l]) =>
       `<button type="button" data-act="${act}" data-v="${esc(v)}" aria-pressed="${String(v) === String(current)}">${esc(l)}</button>`).join('')}</div>`;
@@ -213,12 +229,14 @@
   function viewEventi() {
     const today = todayIso();
     const f = ui.evFilter;
-    const evs = db.events.filter(e => f === 'all' || (f === 'match' ? e.type !== 'training' : e.type === 'training'));
+    const evs = teamEvents().filter(e => f === 'all' || (f === 'match' ? e.type !== 'training' : e.type === 'training'));
     const upcoming = evs.filter(e => e.date >= today).sort((a, b) => a.date.localeCompare(b.date));
     const past = evs.filter(e => e.date < today).sort((a, b) => b.date.localeCompare(a.date));
     let body = '';
-    if (!db.players.length) {
-      body += `<div class="card empty"><strong>Benvenuto!</strong><span>Per iniziare inserisci il nome della squadra e i giocatori.</span><a class="btn btn-primary" href="#/squadra">Configura la squadra</a></div>`;
+    if (!teamPlayers().length) {
+      body += db.players.length
+        ? `<div class="card empty"><strong>Squadra senza giocatori</strong><span>Inserisci la rosa di questa squadra.</span><a class="btn btn-primary" href="#/squadra">Configura la squadra</a></div>`
+        : `<div class="card empty"><strong>Benvenuto!</strong><span>Per iniziare inserisci il nome della squadra e i giocatori.</span><a class="btn btn-primary" href="#/squadra">Configura la squadra</a></div>`;
     }
     if (needsBackup()) {
       body += `<div class="banner"><span>Ci sono dati non salvati in un backup.</span><button class="btn btn-sm" data-act="openBackup">Backup</button></div>`;
@@ -234,8 +252,7 @@
       body += `<h2 class="section-title">Passati</h2><div class="cards">${past.map(e => eventCard(e, false)).join('')}</div>`;
     }
     return `<header class="hdr">
-        <div class="eyebrow">${esc(db.team.name || 'La tua squadra')}</div>
-        <h1>Eventi</h1>
+        <div>${teamPicker()}<h1>Eventi</h1></div>
       </header>
       <main class="main with-fab">${body}</main>
       <a class="fab" href="#/evento/nuovo">${I.plus}<span>Nuovo evento</span></a>
@@ -270,7 +287,8 @@
   /* ---------- Squadra ---------- */
 
   function viewSquadra() {
-    const players = db.players.slice().sort(byNum);
+    const team = curTeam();
+    const players = teamPlayers().sort(byNum);
     const rows = players.map(p => `<button class="prow ${p.active === false ? 'inactive' : ''}" data-act="editPlayer" data-id="${esc(p.id)}">
         <span class="badge ${p.role === 'L' ? 'lib' : ''}">${esc(p.num)}</span>
         <span class="pname">${esc(fullName(p))}${p.active === false ? ' · non attivo' : ''}</span>
@@ -278,19 +296,21 @@
         ${I.chev}
       </button>`).join('');
     return `<header class="hdr"><div class="hdr-row">
-        <div class="hdr-main"><div class="eyebrow">${esc(db.team.name || 'La tua squadra')}</div><h1>Squadra</h1></div>
+        <div class="hdr-main">${teamPicker()}<h1>Squadra</h1></div>
         <button class="hdr-btn" data-act="openBackup">${I.download}<span>Backup</span></button>
       </div></header>
       <main class="main">
         <div class="field card" style="gap:6px">
           <label for="team-name">Nome squadra</label>
-          <input class="input" id="team-name" data-bind="teamName" type="text" autocomplete="off" placeholder="Es. ASD Volley Valle" value="${esc(db.team.name)}">
+          <input class="input" id="team-name" data-bind="teamName" type="text" autocomplete="off" placeholder="Es. ASD Volley Valle" value="${esc(team.name)}">
+          <button class="btn btn-sm" data-act="openTeams">${I.users}<span>${db.teams.length > 1 ? `Cambia squadra (${db.teams.length})` : 'Aggiungi un’altra squadra'}</span></button>
         </div>
         <div class="row-between">
           <h2 class="section-title">Giocatori · ${players.length}</h2>
           <button class="btn btn-primary btn-sm" data-act="newPlayer">${I.plus}<span>Aggiungi</span></button>
         </div>
         ${players.length ? `<div class="list">${rows}</div>` : `<div class="empty"><span>Nessun giocatore. Tocca “Aggiungi” per inserire la rosa.</span></div>`}
+        ${db.teams.length > 1 ? `<button class="btn btn-danger" data-act="deleteTeam">${I.trash}<span>Elimina questa squadra</span></button>` : ''}
         <p class="legend" style="text-align:center;margin:8px 0 0">Scout Volley ${APP_VERSION}</p>
       </main>
       ${nav('squadra')}`;
@@ -319,11 +339,33 @@
     </form>`;
   }
 
+  function modalTeams() {
+    const rows = db.teams.map(t => {
+      const np = teamPlayers(t.id).length, ne = db.events.filter(e => e.teamId === t.id).length;
+      const cur = t.id === curTeam().id;
+      return `<button class="prow" data-act="pickTeam" data-id="${esc(t.id)}" aria-current="${cur}">
+        <span class="pname">${esc(teamName(t))}<span class="psub">${np} giocatori · ${ne} eventi</span></span>
+        ${cur ? `<span class="tick">${I.check}</span>` : I.chev}</button>`;
+    }).join('');
+    return `<div class="sheet">
+      <div class="row-between"><h2>Squadre</h2><button class="icon-btn" data-act="closeModal" aria-label="Chiudi">${I.close}</button></div>
+      <div class="list single">${rows}</div>
+      <form class="field" data-form="team" novalidate>
+        <label for="team-new">Nuova squadra</label>
+        <div style="display:flex;gap:8px">
+          <input class="input" id="team-new" name="name" type="text" autocomplete="off" placeholder="Es. Under 16">
+          <button type="submit" class="btn btn-primary">${I.plus}<span>Crea</span></button>
+        </div>
+      </form>
+      <p>Ogni squadra ha i suoi giocatori, eventi e statistiche.</p>
+    </div>`;
+  }
+
   function modalBackup() {
     const last = Number(localStorage.getItem(BACKUP_KEY) || 0);
     return `<div class="sheet">
       <h2>Backup dei dati</h2>
-      <p>I dati sono salvati solo su questo telefono. Esporta un backup ogni tanto (ad esempio su WhatsApp o Google Drive): serve anche per passare i dati a un altro telefono.</p>
+      <p>I dati di tutte le squadre sono salvati solo su questo telefono. Esporta un backup ogni tanto (ad esempio su WhatsApp o Google Drive): serve anche per passare i dati a un altro telefono.</p>
       <p>Ultimo backup: <strong>${last ? new Date(last).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' }) : 'mai'}</strong></p>
       <button class="btn btn-primary" data-act="exportBackup">${I.download}<span>Esporta backup</span></button>
       <label class="btn" for="import-file">${I.upload}<span>Importa backup</span></label>
@@ -349,7 +391,7 @@
   function prefillLineup(ev) {
     // Copia la formazione dell'ultimo evento che ne ha una
     const prev = db.events
-      .filter(e => e.id !== ev.id && e.court && e.court.some(Boolean))
+      .filter(e => e.id !== ev.id && e.teamId === ev.teamId && e.court && e.court.some(Boolean))
       .sort((a, b) => b.date.localeCompare(a.date))[0];
     if (!prev) return;
     const ok = id => { const p = playerById(id); return p && p.active !== false; };
@@ -359,7 +401,7 @@
 
   function viewLineup(ev) {
     ensureLineup(ev);
-    const players = activePlayers();
+    const players = activePlayers(ev.teamId);
     const n = ev.court.filter(Boolean).length;
     const tiles = players.map(p => {
       const on = ev.court.includes(p.id), lib = ev.liberoId === p.id;
@@ -416,7 +458,7 @@
     }).join('');
 
     const onField = new Set([...ev.court, ev.liberoId].filter(Boolean));
-    const bench = activePlayers().filter(p => !onField.has(p.id));
+    const bench = activePlayers(ev.teamId).filter(p => !onField.has(p.id));
     const benchHtml = `<div class="benchpanel">
         <div class="sec-label">Panchina</div>
         ${bench.length ? `<div class="bench">${bench.map(p =>
@@ -505,7 +547,7 @@
       acts = actionsOf(ev.id);
       if (S.set) acts = acts.filter(a => a.set === S.set);
     } else {
-      const ids = new Set(db.events.filter(e => S.type === 'all' || (S.type === 'match' ? e.type !== 'training' : e.type === 'training')).map(e => e.id));
+      const ids = new Set(teamEvents().filter(e => S.type === 'all' || (S.type === 'match' ? e.type !== 'training' : e.type === 'training')).map(e => e.id));
       acts = db.actions.filter(a => ids.has(a.eventId));
     }
     return { ev, acts };
@@ -513,7 +555,7 @@
 
   function viewStat(evParam) {
     if (!evParam) {
-      const withData = db.events.filter(e => db.actions.some(a => a.eventId === e.id)).sort((a, b) => b.date.localeCompare(a.date))[0];
+      const withData = teamEvents().filter(e => db.actions.some(a => a.eventId === e.id)).sort((a, b) => b.date.localeCompare(a.date))[0];
       evParam = withData ? withData.id : 'all';
     }
     const S = ui.stat;
@@ -541,11 +583,13 @@
     const pids = Object.keys(by).filter(id => sum(by[id][S.tab]) > 0).sort((a, b) => byNum(P(a), P(b)));
     const rows = pids.map(id => row(`${P(id).num} ${P(id).last}`, by[id][S.tab], '')).join('');
     const maxSet = ev ? Math.max(0, ...actionsOf(ev.id).map(a => a.set)) : 0;
-    const evOptions = db.events.slice().sort((a, b) => b.date.localeCompare(a.date))
+    const evList = teamEvents();
+    if (ev && !evList.includes(ev)) evList.push(ev);
+    const evOptions = evList.sort((a, b) => b.date.localeCompare(a.date))
       .map(e => `<option value="${esc(e.id)}" ${ev && ev.id === e.id ? 'selected' : ''}>${esc(fmtDate(e.date).d + ' ' + fmtDate(e.date).m)} · ${esc(evTitle(e))}</option>`).join('');
 
     return `<header class="hdr"><div class="hdr-row">
-        <div class="hdr-main"><div class="eyebrow">${esc(db.team.name || 'La tua squadra')}</div><h1>Statistiche</h1></div>
+        <div class="hdr-main">${teamPicker()}<h1>Statistiche</h1></div>
       </div></header>
       <main class="main">
         <div class="field">
@@ -593,7 +637,7 @@
     rows.push(line('', 'Squadra', '', t));
     const cell = v => { const s = String(v); return /[;"\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const title = ev ? `${evTitle(ev)} - ${fmtDate(ev.date).long}${ui.stat.set ? ' - set ' + ui.stat.set : ''}` : 'Tutti gli eventi';
-    const csv = '﻿' + [[db.team.name || 'Squadra', title], head, ...rows].map(r => r.map(cell).join(';')).join('\r\n');
+    const csv = '﻿' + [[teamName(ev ? db.teams.find(t => t.id === ev.teamId) : curTeam()), title], head, ...rows].map(r => r.map(cell).join(';')).join('\r\n');
     const name = 'scout_' + (ev ? ev.date + '_' + slug(evTitle(ev)) : 'tutti_' + todayIso()) + '.csv';
     return { csv, name };
   }
@@ -630,6 +674,7 @@
     if (ui.modal) {
       let inner = '';
       if (ui.modal.type === 'player') inner = modalPlayer(ui.modal.id);
+      else if (ui.modal.type === 'teams') inner = modalTeams();
       else if (ui.modal.type === 'backup') inner = modalBackup();
       else if (ui.modal.type === 'log') { const ev = eventById(ui.modal.evId); if (ev) inner = modalLog(ev, ui.modal.set); }
       if (inner) modal = `<div class="overlay" data-act="overlay">${inner}</div>`;
@@ -691,6 +736,30 @@
       render();
     },
     openBackup() { ui.modal = { type: 'backup' }; render(); },
+    openTeams() { ui.modal = { type: 'teams' }; render(); },
+    pickTeam(d) {
+      db.curTeamId = d.id;
+      save();
+      ui.modal = null;
+      ui.stat.set = 0;
+      toast('Squadra: ' + teamName(curTeam()));
+      if (route()[0] === 'stat' && route()[1]) go('#/stat'); else render();
+    },
+    deleteTeam() {
+      const t = curTeam();
+      if (db.teams.length < 2) return;
+      const evIds = new Set(db.events.filter(e => e.teamId === t.id).map(e => e.id));
+      const np = teamPlayers(t.id).length;
+      if (!confirm(`Eliminare la squadra “${teamName(t)}” con ${np} giocatori e ${evIds.size} eventi? L’operazione non si può annullare.`)) return;
+      db.teams = db.teams.filter(x => x.id !== t.id);
+      db.players = db.players.filter(p => p.teamId !== t.id);
+      db.events = db.events.filter(e => e.teamId !== t.id);
+      db.actions = db.actions.filter(a => !evIds.has(a.eventId));
+      db.curTeamId = db.teams[0].id;
+      save();
+      toast('Squadra eliminata');
+      render();
+    },
     closeModal() { ui.modal = null; render(); },
     overlay(d, el, e) { if (e.target === el) { ui.modal = null; render(); } },
     async exportBackup() {
@@ -825,7 +894,7 @@
     const el = e.target;
     const bind = el.dataset && el.dataset.bind;
     if (bind === 'teamName') {
-      db.team.name = el.value.trim();
+      curTeam().name = el.value.trim();
       save();
       toast('Nome squadra salvato');
     } else if (bind === 'statEvent') {
@@ -840,7 +909,8 @@
           toast('Questo file non è un backup di Scout Volley');
           return;
         }
-        const msg = `Importare il backup (${data.players.length} giocatori, ${data.events.length} eventi, ${data.actions.length} azioni)? I dati attuali verranno sostituiti.`;
+        const nt = Array.isArray(data.teams) ? data.teams.length : 1;
+        const msg = `Importare il backup (${nt === 1 ? '1 squadra' : nt + ' squadre'}, ${data.players.length} giocatori, ${data.events.length} eventi, ${data.actions.length} azioni)? I dati attuali verranno sostituiti.`;
         if (!confirm(msg)) return;
         db = normalize(data);
         save();
@@ -870,7 +940,7 @@
       let ev = form.dataset.id ? eventById(form.dataset.id) : null;
       if (ev) Object.assign(ev, data);
       else {
-        ev = Object.assign({ id: uid(), createdAt: Date.now(), curSet: 1 }, data);
+        ev = Object.assign({ id: uid(), teamId: curTeam().id, createdAt: Date.now(), curSet: 1 }, data);
         ensureLineup(ev);
         prefillLineup(ev);
         db.events.push(ev);
@@ -886,15 +956,26 @@
       if (num === '' || !last) { toast('Numero e cognome sono obbligatori'); return; }
       const id = form.dataset.id;
       const active = f.active ? f.active.checked : true;
-      const dup = db.players.find(p => p.id !== id && p.active !== false && String(p.num) === num);
+      const tid = id ? playerById(id).teamId : curTeam().id;
+      const dup = teamPlayers(tid).find(p => p.id !== id && p.active !== false && String(p.num) === num);
       if (dup && active) { toast(`Il numero ${num} è già di ${dup.last}`); return; }
       const data = { num: Number(num), last, first: f.first.value.trim(), role: f.role.value, active };
       if (id) Object.assign(playerById(id), data);
-      else db.players.push(Object.assign({ id: uid() }, data));
+      else db.players.push(Object.assign({ id: uid(), teamId: tid }, data));
       save();
       ui.modal = null;
       render();
       toast('Giocatore salvato');
+    } else if (form.dataset.form === 'team') {
+      const name = form.elements.name.value.trim();
+      if (!name) { toast('Scrivi il nome della squadra'); form.elements.name.focus(); return; }
+      const t = { id: uid(), name };
+      db.teams.push(t);
+      db.curTeamId = t.id;
+      save();
+      ui.modal = null;
+      toast('Squadra creata: ora inserisci i giocatori');
+      if (route()[0] === 'squadra') render(); else go('#/squadra');
     }
   });
 

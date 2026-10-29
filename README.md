@@ -9,6 +9,8 @@ Funziona offline e si installa sul telefono Android dalla home.
 2. Menu ⋮ → **Aggiungi a schermata Home** (o **Installa app**).
 3. Da quel momento si apre come un'app e funziona anche senza rete.
 
+Si possono gestire più squadre (tocca il nome della squadra in alto per cambiarla): ognuna ha giocatori, eventi e statistiche separati.
+
 I dati restano solo sul telefono: usa **Squadra → Backup** per esportarli e reimportarli.
 
 ## Codici

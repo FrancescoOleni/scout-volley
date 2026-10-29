@@ -66,6 +66,12 @@ a:hover { color: var(--accent-ink); }
 .hdr-row { display: flex; align-items: center; gap: 8px; }
 .hdr-main { flex: 1; min-width: 0; }
 .eyebrow { font-size: 13px; color: var(--on-dark-muted); text-transform: uppercase; letter-spacing: .06em; }
+.team-pick {
+  border: none; background: transparent; padding: 4px 0; margin: -4px 0 0; max-width: 100%;
+  display: inline-flex; align-items: center; gap: 4px; min-height: 28px;
+}
+.team-pick span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.team-pick svg { flex: none; }
 .hdr h1 { margin: 0; font-size: 30px; font-weight: 800; line-height: 1.1; letter-spacing: -.01em; }
 .hdr-title { font-size: 20px; font-weight: 800; line-height: 1.15; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hdr-sub { font-size: 13px; color: var(--on-dark-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -87,6 +93,8 @@ a:hover { color: var(--accent-ink); }
   padding: 14px 12px 24px;
   display: flex; flex-direction: column; gap: 12px;
 }
+/* Senza questo i blocchi si schiacciano invece di far scorrere la pagina (es. lista giocatori tagliata) */
+.main > * { flex-shrink: 0; }
 .main.with-fab { padding-bottom: 96px; }
 .section-title { margin: 4px 0 0; font-size: 13px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
 .row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
@@ -157,6 +165,9 @@ a:hover { color: var(--accent-ink); }
 }
 .prow:first-child { border-top: none; }
 .prow.inactive { opacity: .55; }
+.prow[aria-current="true"] { background: var(--accent-soft); }
+.prow .psub { display: block; font-size: 13px; font-weight: 500; color: var(--muted); }
+.prow .tick { color: var(--accent); display: flex; }
 .badge {
   width: 38px; height: 38px; flex: none; border-radius: 50%;
   background: var(--ink); color: #FFFFFF; display: flex; align-items: center; justify-content: center;
@@ -308,9 +319,9 @@ select.input { appearance: auto; }
   .main.with-fab { padding-bottom: 104px; }
   .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .lineup-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-  .list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .prow:nth-child(2) { border-top: none; }
-  .prow:nth-child(even) { border-left: 1px solid var(--line-2); }
+  .list:not(.single) { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .list:not(.single) .prow:nth-child(2) { border-top: none; }
+  .list:not(.single) .prow:nth-child(even) { border-left: 1px solid var(--line-2); }
 }
 
 /* Orizzontale: in rilevazione giocatori a sinistra, esiti a destra */
